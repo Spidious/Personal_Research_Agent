@@ -1,0 +1,32 @@
+# Phase 1 source configuration.
+# In later phases this moves to the database.
+# Topics and sources are DATA, not code — the same pipeline
+# runs unchanged for every topic listed here.
+
+topics:
+  - name: Space
+    description: >
+      Space exploration, astronomy, rocket launches, and aerospace technology.
+      Focus on mission updates, scientific discoveries, and industry news.
+    sources:
+      - name: NASA News
+        type: rss
+        url: https://www.nasa.gov/news-releases/feed/
+      - name: SpaceNews
+        type: rss
+        url: https://spacenews.com/feed/
+      - name: The Planetary Society
+        type: rss
+        url: https://www.planetary.org/feed
+
+  - name: AI Research
+    description: >
+      Artificial intelligence research, large language models, agents,
+      and applied ML. Focus on papers, product releases, and technical deep-dives.
+    sources:
+      - name: Anthropic Blog
+        type: rss
+        url: https://www.anthropic.com/rss.xml
+      - name: The Gradient
+        type: rss
+        url: https://thegradient.pub/rss/
