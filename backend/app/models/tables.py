@@ -6,7 +6,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
-    BigInteger, Boolean, DateTime, Enum, ForeignKey,
+    BigInteger, Boolean, DateTime, Enum, ForeignKey, ForeignKeyConstraint,
     Integer, String, Text, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -15,6 +15,7 @@ from ..database import Base
 
 
 class SourceType(str, enum.Enum):
+    """Supported content source types. New types require a matching fetcher in services/fetcher.py."""
     rss = "rss"
     youtube = "youtube"
     reddit = "reddit"
@@ -22,6 +23,7 @@ class SourceType(str, enum.Enum):
 
 
 class FeedbackSignal(str, enum.Enum):
+    """User feedback signals recorded per briefing item. Used in later phases to personalize ranking."""
     more_like_this = "more_like_this"
     less_like_this = "less_like_this"
     not_interested = "not_interested"
@@ -29,6 +31,7 @@ class FeedbackSignal(str, enum.Enum):
 
 
 class User(Base):
+    """A registered user, identified solely by email — no password auth in Phase 1."""
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -40,6 +43,7 @@ class User(Base):
 
 
 class Topic(Base):
+    """A research topic owned by a user that groups one or more content sources."""
     __tablename__ = "topics"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -54,6 +58,7 @@ class Topic(Base):
 
 
 class Source(Base):
+    """A single content feed (RSS, YouTube channel, etc.) attached to a topic."""
     __tablename__ = "sources"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -69,6 +74,7 @@ class Source(Base):
 
 
 class Item(Base):
+    """A single piece of content fetched from a source. Deduplicated by (source_id, external_id)."""
     __tablename__ = "items"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -85,6 +91,7 @@ class Item(Base):
 
 
 class Briefing(Base):
+    """A digest email generated and sent for one topic. Records cost and model for accounting."""
     __tablename__ = "briefings"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -99,6 +106,7 @@ class Briefing(Base):
 
 
 class BriefingItem(Base):
+    """Junction between a briefing and each item it contains, storing the per-item summary, rank, and LLM reasoning."""
     __tablename__ = "briefing_items"
 
     briefing_id: Mapped[int] = mapped_column(ForeignKey("briefings.id", ondelete="CASCADE"), primary_key=True)
@@ -113,13 +121,23 @@ class BriefingItem(Base):
 
 
 class Feedback(Base):
+    """Explicit user signal on a specific briefing item, used in later phases to tune ranking."""
     __tablename__ = "feedback"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    briefing_item_id: Mapped[int] = mapped_column(ForeignKey("briefing_items.item_id", ondelete="CASCADE"))
+    briefing_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    item_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     signal: Mapped[FeedbackSignal] = mapped_column(Enum(FeedbackSignal), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["briefing_id", "item_id"],
+            ["briefing_items.briefing_id", "briefing_items.item_id"],
+            ondelete="CASCADE",
+        ),
+    )
 
     user: Mapped["User"] = relationship(back_populates="feedback")
     briefing_item: Mapped["BriefingItem"] = relationship(back_populates="feedback")

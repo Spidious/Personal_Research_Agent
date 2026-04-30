@@ -49,8 +49,18 @@ def create_message(
     calling_function: str = "unknown",
 ) -> anthropic.types.Message:
     """
-    Wraps client.messages.create, logs the call, and returns the raw response.
-    Raises on API errors after logging.
+    Wrap client.messages.create with full observability logging.
+
+    Every call — successful or failed — is appended to the JSONL log at
+    settings.llm_log_path with timestamp, model, tokens, cost, latency, and
+    the raw prompt/response. Raises the original exception after logging.
+
+    Args:
+        model: Anthropic model ID (e.g. ``settings.workhorse_model``).
+        messages: The ``messages`` array passed directly to the API.
+        system: Optional system prompt string.
+        max_tokens: Hard cap on output tokens.
+        calling_function: Human-readable label written to the log for attribution.
     """
     prompt_text = json.dumps(messages)
     start = time.monotonic()

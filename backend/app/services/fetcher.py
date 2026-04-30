@@ -1,4 +1,4 @@
-"""RSS and source fetching for Phase 1."""
+"""Content fetchers for each supported source type. Currently only RSS/Atom is implemented."""
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -7,6 +7,7 @@ import feedparser
 
 @dataclass
 class FetchedItem:
+    """Normalised representation of a single piece of content from any source type."""
     external_id: str
     url: str
     title: str
@@ -15,6 +16,7 @@ class FetchedItem:
 
 
 def fetch_rss(url: str) -> list[FetchedItem]:
+    """Parse an RSS/Atom feed at `url` and return all entries as FetchedItems."""
     feed = feedparser.parse(url)
     items: list[FetchedItem] = []
     for entry in feed.entries:
@@ -39,6 +41,7 @@ def fetch_rss(url: str) -> list[FetchedItem]:
 
 
 def fetch_source(source_type: str, url: str) -> list[FetchedItem]:
+    """Dispatch to the correct fetcher based on `source_type`. Raises NotImplementedError for unsupported types."""
     if source_type == "rss":
         return fetch_rss(url)
     raise NotImplementedError(f"Source type '{source_type}' not yet implemented")

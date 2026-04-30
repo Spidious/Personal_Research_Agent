@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agent}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro,z
     ports:
       - "5432:5432"
     healthcheck:
@@ -26,8 +26,8 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       FROM_EMAIL: ${FROM_EMAIL:-briefings@example.com}
     volumes:
-      - ./backend:/app
-      - ./sources.yaml:/app/sources.yaml:ro
+      - ./backend:/app:z
+      - ./sources.yaml:/app/sources.yaml:ro,z
     ports:
       - "8000:8000"
     depends_on:
@@ -41,7 +41,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app:z
       - /app/node_modules
       - /app/.next
     ports:

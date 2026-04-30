@@ -1,3 +1,5 @@
+"""FastAPI application entry point — registers CORS middleware, mounts all routers, and manages the async engine lifespan."""
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -10,6 +12,7 @@ from .routers import briefings, health, topics
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Startup/shutdown hook. Table creation is handled by the init SQL migration; engine disposal on shutdown."""
     # Table creation handled by init SQL; this is a no-op safety net for dev
     yield
     await engine.dispose()

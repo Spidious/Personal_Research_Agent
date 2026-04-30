@@ -1,3 +1,5 @@
+"""API routes for triggering briefing pipeline runs."""
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, EmailStr
 

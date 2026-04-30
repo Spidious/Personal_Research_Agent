@@ -1,3 +1,5 @@
+"""API routes for creating and listing user topics."""
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -23,16 +25,18 @@ class TopicOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-@router.get("/{user_email}", response_model=list[TopicOut])
+@router.get("/{user_email}", response_model=list[TopicOut]) # todo: Require authentication to access user details
 async def list_topics(user_email: str, db: AsyncSession = Depends(get_db)):
+    """Return all topics belonging to the given user email."""
     result = await db.execute(
         select(Topic).join(User).where(User.email == user_email)
     )
     return result.scalars().all()
 
 
-@router.post("/", response_model=TopicOut, status_code=201)
+@router.post("/", response_model=TopicOut, status_code=201) # todo: Consider changing to /new-topic
 async def create_topic(body: TopicCreate, db: AsyncSession = Depends(get_db)):
+    """Create a topic for a user, creating the user row first if it does not exist."""
     result = await db.execute(select(User).where(User.email == body.user_email))
     user = result.scalar_one_or_none()
     if not user:

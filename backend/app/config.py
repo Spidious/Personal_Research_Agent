@@ -1,7 +1,10 @@
+"""Application settings loaded from environment variables or a .env file via pydantic-settings."""
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """All runtime configuration. Values are read from the environment; .env is auto-loaded in development."""
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+asyncpg://agent:agent@db:5432/agent"

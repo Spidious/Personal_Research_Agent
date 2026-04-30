@@ -56,11 +56,13 @@ CREATE TABLE IF NOT EXISTS briefing_items (
 );
 
 CREATE TABLE IF NOT EXISTS feedback (
-    id                BIGSERIAL PRIMARY KEY,
-    user_id           BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    briefing_item_id  BIGINT NOT NULL REFERENCES briefing_items(item_id) ON DELETE CASCADE,
-    signal            VARCHAR(20) NOT NULL CHECK (signal IN ('more_like_this','less_like_this','not_interested','saved')),
-    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id           BIGSERIAL PRIMARY KEY,
+    user_id      BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    briefing_id  BIGINT NOT NULL,
+    item_id      BIGINT NOT NULL,
+    signal       VARCHAR(20) NOT NULL CHECK (signal IN ('more_like_this','less_like_this','not_interested','saved')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (briefing_id, item_id) REFERENCES briefing_items(briefing_id, item_id) ON DELETE CASCADE
 );
 
 -- Observability: every LLM call logged here from day one (§8)

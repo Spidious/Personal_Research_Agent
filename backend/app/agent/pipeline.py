@@ -35,7 +35,8 @@ class TopicConfig:
 
 
 def load_topics() -> list[TopicConfig]:
-    with open(settings.sources_yaml_path) as f:
+    """Parse sources.yaml and return a typed list of topic configs."""
+    with open(settings.sources_yaml_path) as f: # todo: Query DB instead of YAML
         data = yaml.safe_load(f)
     return [
         TopicConfig(
@@ -48,6 +49,7 @@ def load_topics() -> list[TopicConfig]:
 
 
 def _summarize_item(title: str, content: str) -> str:
+    """Call Claude Haiku to produce a 2–3 sentence factual summary of a single article."""
     plain_content = html_lib.unescape(content)[:3000]
     response = llm.create_message(
         model=settings.workhorse_model,
@@ -62,6 +64,7 @@ def _summarize_item(title: str, content: str) -> str:
 
 
 def _render_html(topic: TopicConfig, summaries: list[dict]) -> str:
+    """Render the full HTML email body for one topic briefing."""
     items_html = ""
     for i, s in enumerate(summaries, 1):
         items_html += f"""
@@ -88,6 +91,7 @@ def _render_html(topic: TopicConfig, summaries: list[dict]) -> str:
 
 def run_pipeline(*, to_email: str, topic_name: str | None = None) -> list[str]:
     """
+    Generate and send email topics
     Run the Phase 1 pipeline for all (or one) topic.
     Returns list of Resend message IDs.
     """
@@ -96,15 +100,20 @@ def run_pipeline(*, to_email: str, topic_name: str | None = None) -> list[str]:
         topics = [t for t in topics if t.name == topic_name]
 
     sent_ids = []
+    # Loop through each topic
     for topic in topics:
         summaries = []
         seen_urls: set[str] = set()
 
+        # Loop through each source in topic
         for src in topic.sources:
             items = fetcher.fetch_source(src["type"], src["url"])
+
+            # Loop through each item in source
             for item in items:
+                # Skip duplicate items
                 if item.url in seen_urls:
-                    continue
+                    continue # todo: Consider switching this to compare subjects rather than exact emails (i.e. 2 articles reporting the same thing)
                 seen_urls.add(item.url)
                 summary = _summarize_item(item.title, item.content)
                 summaries.append({
@@ -116,6 +125,7 @@ def run_pipeline(*, to_email: str, topic_name: str | None = None) -> list[str]:
         if not summaries:
             continue
 
+        # Send email to client
         html_body = _render_html(topic, summaries)
         msg_id = mailer.send_briefing(
             to=to_email,

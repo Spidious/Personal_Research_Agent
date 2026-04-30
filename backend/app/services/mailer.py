@@ -1,4 +1,4 @@
-"""Email delivery via Resend."""
+"""Email delivery via the Resend API. Requires RESEND_API_KEY in the environment."""
 import resend
 
 from ..config import settings
