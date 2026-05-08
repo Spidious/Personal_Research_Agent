@@ -9,15 +9,15 @@ Cost table (update when Anthropic changes pricing):
   claude-opus-4-7       : $15.00 / $75.00 per MTok in/out
 """
 import json
-import os
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import anthropic
 
 from ..config import settings
 
-_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+_client: anthropic.Anthropic | None = None
 
 # Cost in micro-dollars per token (input, output)
 _COST_TABLE: dict[str, tuple[float, float]] = {
@@ -25,6 +25,30 @@ _COST_TABLE: dict[str, tuple[float, float]] = {
     "claude-sonnet-4-6":         (3.00 / 1_000_000, 15.00 / 1_000_000),
     "claude-opus-4-7":           (15.00 / 1_000_000, 75.00 / 1_000_000),
 }
+
+
+def _get_client() -> anthropic.Anthropic:
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    return _client
+
+
+@dataclass
+class _MockContent:
+    text: str
+
+
+@dataclass
+class _MockUsage:
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
+@dataclass
+class _MockMessage:
+    content: list = field(default_factory=list)
+    usage: _MockUsage = field(default_factory=_MockUsage)
 
 
 def _cost_cents(model: str, input_tokens: int, output_tokens: int) -> int:
@@ -47,21 +71,18 @@ def create_message(
     system: str = "",
     max_tokens: int = 1024,
     calling_function: str = "unknown",
-) -> anthropic.types.Message:
+) -> anthropic.types.Message | _MockMessage:
     """
     Wrap client.messages.create with full observability logging.
 
-    Every call — successful or failed — is appended to the JSONL log at
-    settings.llm_log_path with timestamp, model, tokens, cost, latency, and
-    the raw prompt/response. Raises the original exception after logging.
-
-    Args:
-        model: Anthropic model ID (e.g. ``settings.workhorse_model``).
-        messages: The ``messages`` array passed directly to the API.
-        system: Optional system prompt string.
-        max_tokens: Hard cap on output tokens.
-        calling_function: Human-readable label written to the log for attribution.
+    When ANTHROPIC_API_KEY is not set, returns a mock response so the pipeline
+    can be exercised locally without an API key.
     """
+    if not settings.anthropic_api_key:
+        user_content = messages[-1]["content"] if messages else ""
+        stub_text = f"[MOCK SUMMARY] {user_content[:120].strip()}..."
+        return _MockMessage(content=[_MockContent(text=stub_text)])
+
     prompt_text = json.dumps(messages)
     start = time.monotonic()
     error_text = None
@@ -71,7 +92,7 @@ def create_message(
         kwargs: dict = dict(model=model, messages=messages, max_tokens=max_tokens)
         if system:
             kwargs["system"] = system
-        response = _client.messages.create(**kwargs)
+        response = _get_client().messages.create(**kwargs)
         return response
     except Exception as exc:
         error_text = str(exc)

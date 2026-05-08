@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+asyncpg://agent:agent@db:5432/agent"
-    anthropic_api_key: str
+    anthropic_api_key: str = ""
     resend_api_key: str = ""
     from_email: str = "briefings@example.com"
 

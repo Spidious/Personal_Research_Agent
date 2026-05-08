@@ -1,10 +1,11 @@
 """API routes for creating and listing user topics."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..agent.pipeline import run_pipeline
 from ..database import get_db
 from ..models.tables import Topic, User
 
@@ -25,16 +26,17 @@ class TopicOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-@router.get("/{user_email}", response_model=list[TopicOut]) # todo: Require authentication to access user details
-async def list_topics(user_email: str, db: AsyncSession = Depends(get_db)):
-    """Return all topics belonging to the given user email."""
+@router.get("/{user_email}", response_model=list[TopicOut])  # todo: Require authentication to access user details
+async def list_topics(user_email: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    """Return all topics for the user and trigger a pipeline run, printing the briefing to the terminal."""
     result = await db.execute(
         select(Topic).join(User).where(User.email == user_email)
     )
+    background_tasks.add_task(run_pipeline, to_email=user_email, topic_name=None)
     return result.scalars().all()
 
 
-@router.post("/", response_model=TopicOut, status_code=201) # todo: Consider changing to /new-topic
+@router.post("/", response_model=TopicOut, status_code=201)  # todo: Consider changing to /new-topic
 async def create_topic(body: TopicCreate, db: AsyncSession = Depends(get_db)):
     """Create a topic for a user, creating the user row first if it does not exist."""
     result = await db.execute(select(User).where(User.email == body.user_email))

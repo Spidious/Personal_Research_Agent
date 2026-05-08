@@ -1,0 +1,16 @@
+topics:
+  - name: Space
+    description: Space exploration and astronomy news from major agencies and media
+    sources:
+      - type: rss
+        name: NASA Breaking News
+        url: https://www.nasa.gov/rss/dyn/breaking_news.rss
+      - type: rss
+        name: ESA Top News
+        url: https://www.esa.int/rssfeed/ESA_Top_News
+      - type: rss
+        name: SpaceNews
+        url: https://spacenews.com/feed/
+      - type: rss
+        name: Sky & Telescope
+        url: https://skyandtelescope.org/feed/
